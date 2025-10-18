@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "LLM extension",
+  "version": "1.0.0",
+  "icons": {
+    "16": "16x16.png",
+    "32": "32x32.png",
+    "48": "32x32.png",
+    "128": "32x32.png"
+  },
+  "background": {
+    "service_worker": "background/dist/index.js",
+    "type": "module"
+  },
+  "permissions": [
+    "downloads",
+    "cookies",
+    "webNavigation",
+    "webRequest",
+    "storage",
+    "scripting",
+    "activeTab",
+    "tabs"
+  ],
+  "action": {
+    "default_popup": "popup/dist/index.html",
+    "default_icon": {
+      "16": "16x16.png",
+      "32": "32x32.png",
+      "48": "32x32.png"
+    },
+    "default_title": "LLM Extension"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/*.mp3"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ]
+}

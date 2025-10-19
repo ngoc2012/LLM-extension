@@ -22,15 +22,6 @@
     "activeTab",
     "tabs"
   ],
-  "action": {
-    "default_popup": "popup/dist/index.html",
-    "default_icon": {
-      "16": "16x16.png",
-      "32": "32x32.png",
-      "48": "32x32.png"
-    },
-    "default_title": "LLM Extension"
-  },
   "web_accessible_resources": [
     {
       "resources": ["assets/*.mp3"],

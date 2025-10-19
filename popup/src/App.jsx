@@ -62,7 +62,7 @@ function App() {
       <h3>LLM Extension</h3>
 
       <div>
-        <span>API Key:</span>
+        <p>API Key</p>
         <textarea
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
@@ -73,7 +73,7 @@ function App() {
       </div>
 
       <div>
-        <span>Prompt:</span>
+        <p>Prompt</p>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}

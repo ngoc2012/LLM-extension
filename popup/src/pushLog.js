@@ -7,6 +7,7 @@ export function formatTimestamp() {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 }
 
+// Push a log message to the logs stream
 export function pushLog(message, cat = "LOG") {
   const timestamp = formatTimestamp();
   const logEntry = `[${cat}] ${timestamp}: ${message}`;

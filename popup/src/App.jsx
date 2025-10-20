@@ -1,91 +1,84 @@
 // App.jsx
 import { useEffect, useState } from 'react';
 import './App.css';
-import Anthropic from '@anthropic-ai/sdk';
-import { logs$ } from './streams';
-import { pushLog } from './pushLog';
+import { logs$, prompt$, apiKey$, tabs$, selectedTabId$ } from './streams';
+import Voice from './Voice.jsx';
+import LLM from './LLM.jsx';
+import useConnect from './useConnect.jsx';
+import ActionTest from './ActionTest.jsx';
+
 
 function App() {
   const [apiKey, setApiKey] = useState('');
   const [prompt, setPrompt] = useState("Hello, world");
-  const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState([]);
+  const [tabs, setTabs] = useState([]);
 
+  useConnect();
+  
   useEffect(() => {
-    const logsSubscription = logs$.map(logs => {
+    const logsSubscription = logs$.map((logs) => {
       setLogs(logs);
     });
-
+    const promptSubscription = prompt$.map((prompt) => {
+      setPrompt(prompt);
+    });
+    const apiKeySubscription = apiKey$.map((apiKey) => {
+      setApiKey(apiKey);
+    });
+    const tabsSubscription = tabs$.map((tabs) => {
+      setTabs(tabs);
+    });
     return () => {
       logsSubscription.end(true);
+      promptSubscription.end(true);
+      apiKeySubscription.end(true);
+      tabsSubscription.end(true);
     };
   }, []);
 
-  const handleSend = async () => {
-    setLoading(true);
-
-    if (!apiKey) {
-      pushLog('API key is required', "ERROR");
-      setLoading(false);
-      return;
-    }
-    if (!prompt) {
-      pushLog('Prompt is required', "ERROR");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const anthropic = new Anthropic({
-        apiKey: apiKey,
-        dangerouslyAllowBrowser: true,
-      });
-
-      const result = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 512,
-        messages: [
-          { role: 'user', content: prompt }
-        ],
-      });
-
-      pushLog(`Response received: ${result.content || JSON.stringify(result)}`, "INFO");
-    } catch (err) {
-      pushLog(`Error sending to Anthropic: ${err.message || String(err)}`, "ERROR");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="App">
-      <h3>LLM Extension</h3>
+      <h2>LLM Extension</h2>
 
       <div>
-        <p>API Key</p>
+        <h3>API Key</h3>
         <textarea
           value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
+          onChange={(e) => apiKey$(e.target.value)}
           placeholder="Enter your API key"
-          rows={4}
-          cols={50}
+          rows={3}
         />
       </div>
 
       <div>
-        <p>Prompt</p>
+        <h3>Prompt</h3>
         <textarea
           value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Type your prompt here"
-          rows={6}
-          cols={50}
+          onChange={(e) => prompt$(e.target.value)}
+          placeholder="Type or speak your prompt"
+          rows={5}
         />
       </div>
 
-      <button onClick={handleSend} disabled={loading}>
-        {loading ? 'Sending...' : 'Send'}
-      </button>
+      <div>
+        <h3>Open Tabs</h3>
+        <select onChange={(e) => {selectedTabId$(parseInt(e.target.value))}}>
+          {tabs.map((tab) => (
+            <option key={tab.id} value={tab.id}>
+              {tab.title + '|' + tab.id + '|' + tab.url.slice(0, 30)}
+            </option>
+          ))}
+        </select>
+      </div>
+      
+
+      <div style={{ margin: '1rem 0' }}>
+        <Voice />
+        <LLM />
+      </div>
+
+      <ActionTest />
 
       <div className="logs">
         {logs && logs.length > 0

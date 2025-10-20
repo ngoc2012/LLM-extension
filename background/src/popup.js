@@ -41,7 +41,7 @@ function createPopup() {
     url: popupUrl,
     type: "popup",
     width: 800,
-    height: 950,
+    height: 1200,
   }, (win) => {
     if (win) popupWindowId = win.id;
   });

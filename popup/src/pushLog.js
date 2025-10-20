@@ -1,4 +1,4 @@
-import { logs$ } from './streams';
+import { actionLogs$, logs$ } from './streams';
 
 
 export function formatTimestamp() {
@@ -17,4 +17,9 @@ export function pushLog(message, cat = "LOG") {
     updatedLogs = updatedLogs.slice(updatedLogs.length - 10);
   
   logs$(updatedLogs);
+}
+
+export function pushActionLog(message) {
+  actionLogs$().push(formatTimestamp() + ": " + message);
+  pushLog(message, "ACTION");
 }

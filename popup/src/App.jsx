@@ -6,6 +6,7 @@ import Voice from './Voice.jsx';
 import LLM from './LLM.jsx';
 import useConnect from './useConnect.jsx';
 import ActionTest from './ActionTest.jsx';
+import PromptStep from './PromptStep.jsx';
 
 
 function App() {
@@ -63,7 +64,7 @@ function App() {
 
       <div>
         <h3>Open Tabs</h3>
-        <select onChange={(e) => {selectedTabId$(parseInt(e.target.value))}}>
+        <select onChange={(e) => {selectedTabId$(e.target.value)}} >
           {tabs.map((tab) => (
             <option key={tab.id} value={tab.id}>
               {tab.title + '|' + tab.id + '|' + tab.url.slice(0, 30)}
@@ -78,7 +79,9 @@ function App() {
         <LLM />
       </div>
 
-      <ActionTest />
+      {/* <ActionTest /> */}
+
+      <PromptStep />
 
       <div className="logs">
         {logs && logs.length > 0

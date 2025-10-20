@@ -8,13 +8,16 @@ import { pushActionLog } from "./pushLog";
 export function tabsAction(actionArray, tabId = null) {
   return new Promise((resolve, reject) => {
     const [action, ...args] = actionArray;
-    pushActionLog(`🧭 tabsAction(${action}): ${args.join(", ")}`);
+    pushActionLog(`tabsAction(${action}): ${args.join(", ")}`);
+    if (tabId !== null) {
+      args.push(tabId);
+    }
 
     const actions = {
       navigate: (url, tabId) => {
         if (!tabId || typeof tabId !== "number") {
           const msg = `Invalid tab ID: ${tabId}`;
-          pushActionLog(msg);
+          // pushActionLog(msg);
           return resolve(msg);
         }
         chrome.tabs.update(tabId, { url }, (tab) => {
@@ -34,10 +37,10 @@ export function tabsAction(actionArray, tabId = null) {
         chrome.tabs.query({}, (tabs) => {
           const summaries = tabs.map((t) => ({
             id: t.id,
-            title: t.title,
+            // title: t.title,
             url: t.url,
-            active: t.active,
-            windowId: t.windowId,
+            // active: t.active,
+            // windowId: t.windowId,
           }));
           pushActionLog(`Found ${summaries.length} open tabs`);
           resolve(summaries);
@@ -131,7 +134,7 @@ export function tabsAction(actionArray, tabId = null) {
  */
 export function domAction(actionArray, tabId) {
   return new Promise((resolve, reject) => {
-    pushActionLog(`🧩 domAction(${actionArray.join(", ")}) in tab ${tabId}`);
+    pushActionLog(`domAction(${actionArray.join(", ")}) in tab ${tabId}`);
 
     if (!tabId || typeof tabId !== "number") {
       const msg = `Invalid tab ID: ${tabId}`;
@@ -203,6 +206,51 @@ export function domAction(actionArray, tabId) {
               Array.from(document.querySelectorAll(sel))
                 .map((e) => e.innerText.trim())
                 .filter(Boolean),
+            querySelectorAll: (sel) => {
+              const elements = document.querySelectorAll(sel);
+              return Array.from(elements).map(e => ({
+                tag: e.tagName.toLowerCase(),
+                text: e.innerText.trim(),
+                html: e.outerHTML,
+              }));
+            },
+            extract: async (sel) => {
+              const els = Array.from(document.querySelectorAll(sel));
+              return els.map(e => e.innerText.trim()).filter(Boolean);
+            },
+            findKeyword: (keyword) => {
+              if (!keyword) return "No keyword provided";
+              const text = document.body.innerText || "";
+              const count = (text.match(new RegExp(keyword, "gi")) || []).length;
+              return count > 0
+                ? `Found "${keyword}" ${count} time(s) in page body`
+                : `Keyword "${keyword}" not found`;
+            },
+            getDOMSummary: (sel, max_depth) => {
+              const el = document.querySelector(sel);
+              if (!el) return `Element ${sel} not found`;
+
+              function summarize(node, max_depth, depth = 0) {
+                if (!node.tagName) return "";
+                if (depth > max_depth) return ""; // avoid deep recursion
+                if (node.tagName.toLowerCase() === "script") return ""; // skip scripts
+
+                const attrs = Array.from(node.attributes || [])
+                  .map(a => `${a.name}="${a.value}"`)
+                  .join(" ");
+
+                const children = Array.from(node.children)
+                  .map(c => summarize(c, max_depth, depth + 1))
+                  .filter(Boolean)
+                  .join("\n");
+
+                return `${"  ".repeat(depth)}<${node.tagName.toLowerCase()}${attrs ? " " + attrs : ""}>${
+                  children ? "\n" + children + "\n" + "  ".repeat(depth) : ""
+                }</${node.tagName.toLowerCase()}>`;
+              }
+
+              return summarize(el, max_depth);
+            },
           };
 
           const [actionName, ...params] = actionArgs;
@@ -224,8 +272,8 @@ export function domAction(actionArray, tabId) {
           return reject(msg);
         }
         const result = results?.[0]?.result ?? "No result";
-        const msg = `DOM action result: ${result}`;
-        pushActionLog(msg);
+        // const msg = `DOM action result: ${result}`;
+        // pushActionLog(msg);
         resolve(result);
       }
     );
@@ -241,12 +289,16 @@ export async function llmAction(commandArray) {
     pushActionLog(msg);
     return msg;
   }
-
   const [category, ...args] = commandArray;
-  pushActionLog(`🧠 LLM Action → ${category}: ${args.join(", ")}`);
   const tabIdString = args.length > 0 ? args.pop() : null;
-  const tabId = tabIdString ? parseInt(tabIdString) : null;
+  let tabId = null;
+  if (typeof tabIdString === "string") {
+    tabId = tabIdString ? parseInt(tabIdString) : null;
+  } else if (typeof tabIdString === "number") {
+    tabId = tabIdString;
+  }
 
+  console.log(`llmAction parsed tabId: ${tabId} from ${tabIdString}`, typeof tabIdString, typeof tabId);
   try {
     let message;
     switch (category) {
@@ -266,10 +318,10 @@ export async function llmAction(commandArray) {
         return message;
     }
 
-    pushActionLog(`✅ LLM ${category} action result: ${JSON.stringify(message)}`);
+    pushActionLog(`LLM ${category} action result: ${JSON.stringify(message)}`);
     return message;
   } catch (err) {
-    const msg = `❌ LLM Action failed: ${err.message}`;
+    const msg = `LLM Action failed: ${err.message}`;
     pushActionLog(msg);
     return msg;
   }

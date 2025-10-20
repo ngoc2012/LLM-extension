@@ -5,14 +5,18 @@ import { actionLogs$ } from './streams.js'; // make sure you import this if need
 import { useEffect } from 'react';
 import anthropic from './anthropic.js';
 import { llmAction} from './content';
+import { MAX_LOG_LENGTH } from './const.js';
 
 
 function PromptStep() {
   const [step, setStep] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState(prompt$());
   const [promptStep, setPromptStep] = useState();
   const [promptResponse, setPromptResponse] = useState('');
   const [actionLogs, setActionLogs] = useState([]);
+  const [lastAction, setLastAction] = useState(null);
+  const [result, setResult] = useState('');
 
   useEffect(() => {
     const promptSubscription = prompt$.map((prompt) => {
@@ -30,17 +34,36 @@ function PromptStep() {
 
   const nextHandler = () => {
     setStep(step + 1);
-    anthropic(promptStep).then((response) => {
-      setPromptResponse(response || 'No response');
-      if (response) {
-        const action = JSON.parse(response).action;
+    setLoading(true);
+    anthropic(promptStep).then(async (response) => {
+      setLoading(false);
+      if (!response) {
+        setPromptResponse('No response');
+        return;
+      }
+
+      // Remove any markdown backticks and trim
+      const cleanResponse = response.replace(/```json|```/g, '').trim();
+
+      setPromptResponse(cleanResponse);
+
+      try {
+        const action = JSON.parse(cleanResponse).action;
         actionLogs$([]); // Clear action logs for the next step
-        llmAction(action);
+        await llmAction(action);
+        setLastAction(action);
+        const resultText = JSON.parse(cleanResponse).result || '';
+        if (resultText) {
+          setResult(resultText);
+        }
+      } catch (err) {
+        console.error('Failed to parse JSON:', err, cleanResponse);
       }
     });
   };
 
   useEffect(() => {
+
     setPromptStep(
 
 `You are a browser automation agent.
@@ -53,28 +76,39 @@ Example actions:
 ["dom", "click", <cssSelector>, <tabId?>] — click on a DOM element.
 ["dom", "inputText", <cssSelector>, <text>, <tabId?>] — type text into an input field.
 ["dom", "extract", <cssSelector>, <tabId?>] — extract text content from the DOM.
-["tabs", "getAll", ""] — list all open tabs. (TabId not required)
+["tabs", "getAll", 0] — list all open tabs. (TabId not required)
+["tabs", "create", <url>, 0] — create a new tab with the given URL. (TabId not required)
+["dom", "getDOMSummary", <cssSelector>, <depth>, <tabId?>] — get a structured summary of the DOM subtree.
 
-You will output only the next action to execute, based on what’s currently on the page.
-After each action is executed, you will receive the DOM (HTML) or a success message before proposing the next action.
 
-Follow this strict protocol:
-1. Think step by step.
-2. Propose only the next action.
-3. Use valid JSON array syntax, no explanations.
-4. Do not jump ahead — each step must be confirmed manually before continuing.
+List of available actions you can use:
+tabs: navigate, getAll, create, remove, activate, reload
+dom: click, inputText, getText, getHTML, exists, focus, blur, scrollToTop, scrollToBottom, scrollBy, wait, getTitle, getUrl, reload, highlight, queryAll, querySelectorAll, extract, findKeyword, getDOMSummary
+
+Steps: Need to check the dom structure (getDOMSummary) by navigating to the appropriate element and go deeper.
+
+Attention: Result logs limited to ${MAX_LOG_LENGTH} entries.
+
+Output constraints:
+Output **only the next action**.
+Output only a single JSON object as plain text.
+Do not include markdown, code fences, explanations, reasoning, or speech. 
+Do not output anything else.
+
 
 Objective: "${currentPrompt}"
 
-Current action logs at step ${step}:
-${actionLogs.length ? actionLogs.join('\n') : 'No action logs yet.'}
-
-Expected output format (JSON):
+Expected output format:
 {
   "action": ["tabs", "navigate", "https://mail.google.com/", "<tabId>"],
   "reasoning": "To access the user's email as per the objective.",
-  "speech": "Provide only after completing the objective or if unsure."
-}`
+  "speech": "Provide only after completing the objective or if unsure.",
+  "result": "Final result after completing the objective."
+}
+
+${actionLogs.length ? `Last action: ${lastAction ? JSON.stringify(lastAction) : 'None'}
+\nLast action logs at step ${step}:\n${actionLogs.slice(-MAX_LOG_LENGTH).join('\n')}` : ''}  
+`
 
     );
   }, [step, currentPrompt, actionLogs]);
@@ -85,8 +119,10 @@ Expected output format (JSON):
       <pre className="prompt-test">{promptStep}</pre>
       <h3>Prompt Response</h3>
       <div className="prompt-response">{promptResponse}</div>
-      <button onClick={nextHandler}>Next</button>
+      <button onClick={nextHandler}  disabled={loading}>{loading ? 'Sending...' : 'Send'}</button>
       <button onClick={() => {setStep(0); setPromptResponse(''); setActionLogs([]);}}>Reset</button>
+      <h3>Result</h3>
+      <div className='result'>{result}</div>
     </div>
   );
 }

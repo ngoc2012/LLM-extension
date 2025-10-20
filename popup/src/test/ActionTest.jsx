@@ -1,18 +1,17 @@
-// App.jsx
-import './App.css';
-import { pushLog } from './pushLog';
-import { selectedTabId$ } from './streams';
-import { llmAction} from './content';
+// ActionTest.jsx
+import { pushLog } from '../pushLog';
+import { selectedTabId$ } from '../streams';
+import { llmAction} from '../content';
+
 
 function ActionTest() {
-
   return (
     <div>
       <h3>Action Test</h3>
       <button onClick={() => llmAction(['tabs', 'navigate', 'https://www.gmail.com', selectedTabId$()])}>
         Navigate
       </button>
-      <button onClick={() => llmAction(['dom', 'click', 'div.T-I.T-I-KE.L3', selectedTabId$()])}>
+      <button onClick={() => llmAction(["tabs", "navigate", "https://mail.google.com/mail/u/0/#search/newer_than:7d", 837785696])}>
         Click
       </button>
       <button onClick={() => llmAction(['dom', 'inputText', '#gs_lc50 > input:nth-child(1)', 'ngrok', selectedTabId$()])}>

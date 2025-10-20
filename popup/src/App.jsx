@@ -3,15 +3,14 @@ import { useEffect, useState } from 'react';
 import './App.css';
 import { logs$, prompt$, apiKey$, tabs$, selectedTabId$ } from './streams';
 import Voice from './Voice.jsx';
-import LLM from './LLM.jsx';
 import useConnect from './useConnect.jsx';
-import ActionTest from './ActionTest.jsx';
+import ActionTest from './test/ActionTest.jsx';
 import PromptStep from './PromptStep.jsx';
 
 
 function App() {
   const [apiKey, setApiKey] = useState('');
-  const [prompt, setPrompt] = useState("Hello, world");
+  const [prompt, setPrompt] = useState(prompt$());
   const [logs, setLogs] = useState([]);
   const [tabs, setTabs] = useState([]);
 
@@ -76,7 +75,7 @@ function App() {
 
       <div style={{ margin: '1rem 0' }}>
         <Voice />
-        <LLM />
+        {/* <LLM /> */}
       </div>
 
       {/* <ActionTest /> */}

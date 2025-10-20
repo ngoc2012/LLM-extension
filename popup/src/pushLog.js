@@ -1,4 +1,5 @@
 import { actionLogs$, logs$ } from './streams';
+import { MAX_LOGS } from './const';
 
 
 export function formatTimestamp() {
@@ -13,13 +14,14 @@ export function pushLog(message, cat = "LOG") {
   const logEntry = `[${cat}] ${timestamp}: ${message}`;
   
   let updatedLogs = [...logs$(), logEntry];
-  if (updatedLogs.length > 10)
-    updatedLogs = updatedLogs.slice(updatedLogs.length - 10);
-  
+  if (updatedLogs.length > MAX_LOGS)
+    updatedLogs = updatedLogs.slice(updatedLogs.length - MAX_LOGS);
+
   logs$(updatedLogs);
 }
 
 export function pushActionLog(message) {
-  actionLogs$().push(formatTimestamp() + ": " + message);
+  const logEntry = `${formatTimestamp()}: ${message}`;
+  actionLogs$([...actionLogs$(), logEntry]);
   pushLog(message, "ACTION");
 }

@@ -1,5 +1,5 @@
 import { actionLogs$, logs$ } from './streams';
-import { MAX_LOGS } from './param';
+import { MAX_LOGS, MAX_LOG_LENGTH, MAX_ACTION_LOG_LENGTH } from './param';
 
 
 export function formatTimestamp() {
@@ -21,7 +21,7 @@ export function pushLog(message, cat = "LOG") {
 }
 
 export function pushActionLog(message) {
-  const logEntry = `${formatTimestamp()}: ${message}`;
+  const logEntry = `${formatTimestamp()}: ${message.slice(0, MAX_ACTION_LOG_LENGTH)}`;
   actionLogs$([...actionLogs$(), logEntry]);
-  pushLog(message, "ACTION");
+  pushLog(message.slice(0, MAX_LOG_LENGTH), "ACTION");
 }

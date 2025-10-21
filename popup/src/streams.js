@@ -6,3 +6,4 @@ export const actionLogs$ = flyd.stream([]);
 export const prompt$ = flyd.stream('');
 export const apiKey$ = flyd.stream('');
 export const tabs$ = flyd.stream([]);
+export const promptModel$ = flyd.stream('');

@@ -26,7 +26,6 @@ export async function llmAction(commandArray) {
         break;
 
       case "dom": {
-        console.log("DOM action args:", args);
         message = await domAction(args, tabId);
         break;
       }
@@ -37,7 +36,7 @@ export async function llmAction(commandArray) {
         return message;
     }
 
-    pushActionLog(`LLM ${category} action result: ${JSON.stringify(message)}`);
+    pushActionLog(`${JSON.stringify(message)}`);
     return message;
   } catch (err) {
     if (err.message) {

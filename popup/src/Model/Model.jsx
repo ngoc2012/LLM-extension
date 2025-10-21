@@ -1,11 +1,13 @@
 // Model.jsx
-import { useState } from 'react';
-import { prompt$, logs$, actionLogs$ } from '../streams.js';
+import { useEffect, useState } from 'react';
+import { prompt$, logs$, actionLogs$, promptModel$ } from '../streams.js';
 import anthropic from './anthropic.js';
 import { llmAction} from './Content/llmAction.js';
 import { useFlyd } from '../useFlyd.js';
 import usePrompt from './usePrompt.js';
-import Toggle from '../Components/Toggle.jsx';
+import extractJSON from './extractJSON.js';
+import { LLM_REQUEST_DELAY, LLM_MAX_STEPS } from '../param.js';
+import { use } from 'react';
 
 
 function Model() {
@@ -13,40 +15,62 @@ function Model() {
   const [loading, setLoading] = useState(false);
   const [promptHistory, setPromptHistory] = useState([]);
   const [result, setResult] = useState('');
+  const [reasoning, setReasoning] = useState('');
+  const [running, setRunning] = useState(false);
   const prompt = useFlyd(prompt$, () => setStep(0));
-  const logs = useFlyd(logs$);
+  const promptModel = useFlyd(promptModel$);
 
-  const promptModel = usePrompt(step, promptHistory, prompt);
-
+  usePrompt(step, promptHistory, prompt);
+  
   const nextHandler = () => {
-    setStep(step + 1);
     setLoading(true);
     anthropic(promptModel).then(async (response) => {
       setLoading(false);
       if (!response) {
         return;
       }
-
-      // Remove any markdown backticks and trim
-      const cleanResponse = response.replace(/```json|```/g, '').trim();
-
-      try {
-        const action = JSON.parse(cleanResponse).action;
-        actionLogs$([]); // Clear action logs for the next step
-        await llmAction(action);
-        setPromptHistory((prev) => [
-          ...prev,
-          {...cleanResponse, actionLogs: actionLogs$()}
-        ]);
-        const resultText = JSON.parse(cleanResponse).result || '';
-        if (resultText) {
-          setResult(resultText);
-        }
-      } catch (err) {
-        console.error('Failed to parse JSON:', err, cleanResponse);
+      setStep(step + 1);
+      const extracted = extractJSON(response);
+      if (!extracted) return;
+      const action = extracted?.action;
+      actionLogs$([]); // Clear action logs for the next step
+      await llmAction(action);
+      setPromptHistory((prev) => [
+        ...prev,
+        {...extracted, actionLogs: actionLogs$()}
+      ]);
+      const resultText = extracted?.result || '';
+      if (resultText) {
+        setResult(resultText);
+        setRunning(false);
+      }
+      const reasoningText = extracted?.reasoning || '';
+      if (reasoningText) {
+        setReasoning(reasoningText);
+      }
+      if (extracted?.speech) {
+        console.log('Speaking:', extracted.speech);
+        speechSynthesis.cancel();
+        speechSynthesis.speak(new SpeechSynthesisUtterance(extracted.speech));
       }
     });
   };
+
+  useEffect(() => {
+    let timeout;
+    if (running && step < LLM_MAX_STEPS && !loading) {
+      timeout = setTimeout(() => {
+        nextHandler();
+      }, LLM_REQUEST_DELAY);
+    }
+    return () => clearTimeout(timeout);
+  }, [step, loading, running]);
+
+  useEffect(() => {
+    if (step >= LLM_MAX_STEPS) {
+      setRunning(false);
+    }
+  }, [step]);
 
   function resetHandler() {
     setStep(0);
@@ -54,33 +78,30 @@ function Model() {
     actionLogs$([]);
     logs$([]);
     setPromptHistory([]);
+    setReasoning('');
   }
 
   return (
     <>
       <h3>Model</h3>
-      <button onClick={nextHandler}  disabled={loading}>
-        {loading ? 'Sending...' : 'Send'}
+      <button onClick={nextHandler}  disabled={loading || running}>
+        {loading ? 'Sending...' : step > 0 ? (running ? 'Waiting...' : 'Next') : 'Send'}
+      </button>
+      <button onClick={() => setRunning(true)} disabled={running || step >= LLM_MAX_STEPS}>
+        Start Auto
+      </button>
+      <button onClick={() => setRunning(false)} disabled={!running}>
+        Stop Auto
       </button>
       <button onClick={resetHandler}>Reset</button>
+      {reasoning && <div className='reasoning'>
+        <h3>Model reasoning on step {step}</h3>
+        <div>{reasoning}</div>
+      </div>}
       {result && <div className='result'>
-        <h3>Result</h3>
-        <pre>{result}</pre>
-        </div>}
-      <div className="logs">
-        {logs && logs.length > 0
-          ? logs.map((log, id) => <p key={id}>{log}</p>)
-          : <p>No logs available</p>}
-      </div>
-      <Toggle
-        component={() => (
-          <div className="prompt-model">
-            <h3>Prompt to Model</h3>
-            <pre>{promptModel}</pre>
-          </div>
-        )}
-        label={{ show: "Show Prompt to Model", hide: "Hide Prompt to Model" }}
-      />  
+        <h3>Final Result</h3>
+        <div>{result}</div>
+      </div>}
     </>
   );
 }

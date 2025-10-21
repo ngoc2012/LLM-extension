@@ -1,21 +1,20 @@
 // usePrompt.js
-import { useEffect, useState } from 'react';
-import { MAX_LOG_LENGTH } from '../param.js';
+import { useEffect } from 'react';
+import { MAX_ACTION_LOG_LENGTH } from '../param.js';
+import { promptModel$ } from '../streams.js';
 
+// Reasoning: ${entry.reasoning || 'N/A'}
 export default function usePrompt(step, promptHistory = [], prompt = '') {
-  const [promptModel, setPromptModel] = useState('');
-
   useEffect(() => {
     const historyText = promptHistory.length
       ? promptHistory.map((entry, index) =>
           `Step ${index + 1}:
 Action: ${entry.action ? JSON.stringify(entry.action) : 'N/A'}
-Reasoning: ${entry.reasoning || 'N/A'}
-Logs: ${entry.actionLogs ? entry.actionLogs.slice(-MAX_LOG_LENGTH).join('\n') : 'N/A'}`
+Logs: ${entry.actionLogs ? entry.actionLogs.slice(-MAX_ACTION_LOG_LENGTH).join('\n') : 'N/A'}`
         ).join('\n\n')
       : 'No actions taken yet.';
 
-    setPromptModel(
+    promptModel$(
 `You are a browser automation agent.
 
 Your goal is to achieve the user’s objective step-by-step, one action at a time.
@@ -29,14 +28,34 @@ Example actions:
 ["tabs", "getAll", 0] — list all open tabs.
 ["tabs", "create", <url>, 0] — create a new tab.
 ["dom", "getDOMSummary", <cssSelector>, <depth>, <tabId?>] — get a structured summary of the DOM subtree.
+["dom", "placeholders", <cssSelector?>, <tabId?>] — get placeholder texts of input elements.
 
 Available actions:
 tabs: navigate, getAll, create, remove, activate, reload
-dom: click, inputText, getText, getHTML, exists, focus, blur, scrollToTop, scrollToBottom, scrollBy, wait, getTitle, getUrl, reload, highlight, queryAll, querySelectorAll, extract, findKeyword, getDOMSummary
+dom: click, inputText, getText, getHTML, exists, focus, blur, scrollToTop, scrollToBottom,
+scrollBy, wait, getTitle, getUrl, reload, highlight, queryAll, querySelectorAll, extract,
+findKeyword, getDOMSummary, placeholders
 
-Steps: Check the DOM structure (getDOMSummary) and navigate appropriately.
+Steps:
+1- Always check tabs list before navigating.
+2- When navigating, prefer existing tabs.
+3- After navigation, before scrolling, search for input fields first (show placeholders with placeholders command).
 
-Attention: Result logs limited to ${MAX_LOG_LENGTH} entries.
+To find a search input field, look for an <input> element that:
+- has type="text" or type="search"
+- or has id, name, or placeholder containing keywords: "search", "query", "find"
+- or is inside a form intended for search
+If multiple candidates exist, choose the first visible one.
+
+4- Use DOM actions to interact with the page as needed.
+5- Use getDOMSummary to understand complex page structures.
+6- Limit DOM queries to specific selectors to avoid overload.
+7- Always provide reasoning for each action.
+8- If unsure about the next step, gather more information from the page.
+
+
+
+Attention: Result logs limited to ${MAX_ACTION_LOG_LENGTH} characters.
 
 Output constraints:
 Output only the next action as a single JSON object, plain text.
@@ -57,5 +76,4 @@ ${historyText}`
     );
   }, [step, prompt, promptHistory]);
 
-  return promptModel;
 }

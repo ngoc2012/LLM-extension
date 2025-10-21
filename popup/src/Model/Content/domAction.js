@@ -127,6 +127,12 @@ export function domAction(actionArray, tabId) {
 
               return summarize(el, max_depth);
             },
+            placeholders: (sel) => {
+              const els = document.querySelectorAll(sel || 'input[placeholder]');
+              return Array.from(els)
+                .map(e => e.placeholder)
+                .filter(Boolean);
+            }
           };
 
           const [actionName, ...params] = actionArgs;

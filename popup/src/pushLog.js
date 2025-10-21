@@ -1,5 +1,5 @@
 import { actionLogs$, logs$ } from './streams';
-import { MAX_LOGS } from './const';
+import { MAX_LOGS } from './param';
 
 
 export function formatTimestamp() {

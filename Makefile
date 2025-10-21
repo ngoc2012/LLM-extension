@@ -1,5 +1,4 @@
 all:
 	@echo "Building all..."
-	
-install esbuild:
-	npm install --save-exact --save-dev esbuild
+	cd popup && npm install && npm run build
+	cd background && npm install && npm run build

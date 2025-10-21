@@ -1,8 +1,7 @@
-// App.jsx
+// Voice.jsx
 import { useEffect, useState } from 'react';
-import './App.css';
-import { pushLog } from './pushLog';
-import { prompt$ } from './streams';
+import { pushLog } from '../pushLog';
+import { prompt$ } from '../streams';
 
 
 function Voice() {
@@ -52,10 +51,12 @@ function Voice() {
   };
 
   return (
-
+    <div>
         <button onClick={handleVoiceToggle}>
           {listening ? '🛑 Stop Voice' : '🎤 Start Voice'}
         </button>
+        <button onClick={() => prompt$("")}>Clear</button>
+    </div>
   );
 }
 

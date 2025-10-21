@@ -1,7 +1,7 @@
 // anthropic.js
 import Anthropic from '@anthropic-ai/sdk';
-import { apiKey$ } from './streams';
-import { pushLog } from './pushLog';
+import { apiKey$ } from '../streams';
+import { pushLog } from '../pushLog';
 
 
 async function anthropic(prompt) {

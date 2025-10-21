@@ -1,41 +1,16 @@
 // App.jsx
-import { useEffect, useState } from 'react';
 import './App.css';
-import { logs$, prompt$, apiKey$, tabs$, selectedTabId$ } from './streams';
-import Voice from './Voice.jsx';
-import useConnect from './useConnect.jsx';
-import ActionTest from './test/ActionTest.jsx';
-import PromptStep from './PromptStep.jsx';
+import { prompt$, apiKey$ } from './streams';
+import Voice from './Components/Voice.jsx';
+import Toggle from './Components/Toggle.jsx';
+import ActionTest from './Test/ActionTest.jsx';
+import Model from './Model/Model.jsx';
+import { useFlyd } from './useFlyd.js';
 
 
 function App() {
-  const [apiKey, setApiKey] = useState('');
-  const [prompt, setPrompt] = useState(prompt$());
-  const [logs, setLogs] = useState([]);
-  const [tabs, setTabs] = useState([]);
-
-  useConnect();
-  
-  useEffect(() => {
-    const logsSubscription = logs$.map((logs) => {
-      setLogs(logs);
-    });
-    const promptSubscription = prompt$.map((prompt) => {
-      setPrompt(prompt);
-    });
-    const apiKeySubscription = apiKey$.map((apiKey) => {
-      setApiKey(apiKey);
-    });
-    const tabsSubscription = tabs$.map((tabs) => {
-      setTabs(tabs);
-    });
-    return () => {
-      logsSubscription.end(true);
-      promptSubscription.end(true);
-      apiKeySubscription.end(true);
-      tabsSubscription.end(true);
-    };
-  }, []);
+  const apiKey = useFlyd(apiKey$);
+  const prompt = useFlyd(prompt$);
 
   return (
     <div className="App">
@@ -47,7 +22,7 @@ function App() {
           value={apiKey}
           onChange={(e) => apiKey$(e.target.value)}
           placeholder="Enter your API key"
-          rows={3}
+          rows={1}
         />
       </div>
 
@@ -61,32 +36,13 @@ function App() {
         />
       </div>
 
-      <div>
-        <h3>Open Tabs</h3>
-        <select onChange={(e) => {selectedTabId$(e.target.value)}} >
-          {tabs.map((tab) => (
-            <option key={tab.id} value={tab.id}>
-              {tab.title + '|' + tab.id + '|' + tab.url.slice(0, 30)}
-            </option>
-          ))}
-        </select>
-      </div>
-      
+      <Voice />
+      <Model />
+      <Toggle
+        component={ActionTest}
+        label={{ show: "Show Action Test", hide: "Hide Action Test" }}
+      />
 
-      <div style={{ margin: '1rem 0' }}>
-        <Voice />
-        {/* <LLM /> */}
-      </div>
-
-      {/* <ActionTest /> */}
-
-      <PromptStep />
-
-      <div className="logs">
-        {logs && logs.length > 0
-          ? logs.map((log, id) => <p key={id}>{log}</p>)
-          : <p>No logs available</p>}
-      </div>
     </div>
   );
 }

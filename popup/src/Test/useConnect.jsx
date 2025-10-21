@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { tabs$ } from './streams';
+import { tabs$ } from '../streams';
 
 
 function useConnect() {

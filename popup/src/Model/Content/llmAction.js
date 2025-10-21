@@ -36,13 +36,14 @@ export async function llmAction(commandArray) {
         return message;
     }
 
-    pushActionLog(`${JSON.stringify(message)}`);
+    pushActionLog(`LLM ${category} action result: ${JSON.stringify(message)}`);
     return message;
   } catch (err) {
     if (err.message) {
       const msg = `LLM Action failed: ${err.message}`;
       pushActionLog(msg);
+      return msg;
     }
-    return msg;
+    return '';
   }
 }
